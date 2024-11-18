@@ -10,43 +10,34 @@ Original file is located at
 import numpy as np
 import pandas as pd
 
-# Load dataset
-train_file_path = '/content/drive/My Drive/cs6350/assignments/assignment3/bank-note/train.csv'
-test_file_path = '/content/drive/My Drive/cs6350/assignments/assignment3/bank-note/test.csv'
+train_file_path = 'datasets/bank-note/train.csv'
+test_file_path = 'datasets/bank-note/test.csv'
 train_data = pd.read_csv(train_file_path, header=None)
 test_data = pd.read_csv(test_file_path, header=None)
 
-# Extract features and labels
 X_train = train_data.iloc[:, :-1].values.astype(float)
 y_train = train_data.iloc[:, -1].values
 X_test = test_data.iloc[:, :-1].values.astype(float)
 y_test = test_data.iloc[:, -1].values
 
-# Convert labels to +1, -1
 y_train = np.where(y_train == 0, -1, 1)
 y_test = np.where(y_test == 0, -1, 1)
 
-# Initialize weights and parameters
 weights = np.zeros(X_train.shape[1])
 learning_rate = 0.01
 max_epochs = 10
 
-# Standard Perceptron Training
 for epoch in range(max_epochs):
     for i in range(len(X_train)):
         if y_train[i] * np.dot(X_train[i], weights) <= 0:
             weights += learning_rate * y_train[i] * X_train[i]
 
-# Prediction Function
 def predict(X, weights):
     return np.sign(X.dot(weights))
 
-# Predict on test data
 y_pred = predict(X_test, weights)
 
-# Calculate average prediction error
 average_error = np.mean(y_pred != y_test)
 
-# Report results
 print("Learned weight vector:", weights)
 print("Average prediction error on test dataset:", average_error)
