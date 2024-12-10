@@ -11,52 +11,42 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.distance import cdist
 
-# Load the training and testing datasets
-train_df = pd.read_csv('/content/drive/My Drive/cs6350/assignments/assignment4/bank-note/train.csv', header=None)
-test_df = pd.read_csv('/content/drive/My Drive/cs6350/assignments/assignment4/bank-note/test.csv', header=None)
+train_df = pd.read_csv('datasets/bank-note/train.csv', header=None)
+test_df = pd.read_csv('datasets/bank-note/test.csv', header=None)
 
-# Extract features and labels from datasets
 X_train = train_df.iloc[:, :-1].values
 y_train = train_df.iloc[:, -1].values
 X_test = test_df.iloc[:, :-1].values
 y_test = test_df.iloc[:, -1].values
 
-# Convert labels to {-1, 1}
 y_train = np.where(y_train == 0, -1, 1)
 y_test = np.where(y_test == 0, -1, 1)
 
-# Hyperparameters
-gamma_values = [0.1, 0.5, 1, 5, 100]  # Different values of gamma for Gaussian kernel
+gamma_values = [0.1, 0.5, 1, 5, 100]
 
-# Gaussian kernel function using vectorized operations
 def gaussian_kernel_matrix(X1, X2, gamma):
     pairwise_sq_dists = cdist(X1, X2, 'sqeuclidean')
     return np.exp(-pairwise_sq_dists / gamma)
 
-# Kernel Perceptron algorithm
 def kernel_perceptron(X_train, y_train, X_test, y_test, gamma):
     n_samples = X_train.shape[0]
     alpha = np.zeros(n_samples)
     K = gaussian_kernel_matrix(X_train, X_train, gamma)
 
-    # Training phase
-    for _ in range(10):  # Number of epochs
+    for _ in range(10):
         for i in range(n_samples):
             if np.sign(np.sum(alpha * y_train * K[:, i])) != y_train[i]:
                 alpha[i] += 1
 
-    # Prediction for training data
     train_predictions = np.sign(np.sum(alpha * y_train * K, axis=1))
     train_error = np.mean(train_predictions != y_train)
 
-    # Prediction for test data
     K_test = gaussian_kernel_matrix(X_test, X_train, gamma)
     test_predictions = np.sign(np.sum(alpha * y_train * K_test, axis=1))
     test_error = np.mean(test_predictions != y_test)
 
     return train_error, test_error
 
-# Train and evaluate Kernel Perceptron for different values of gamma
 for gamma in gamma_values:
     train_error, test_error = kernel_perceptron(X_train, y_train, X_test, y_test, gamma)
     print(f"For Gamma = {gamma}: Training Error = {train_error:.4f}, Test Error = {test_error:.4f}")

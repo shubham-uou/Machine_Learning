@@ -13,38 +13,30 @@ import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 from scipy.spatial.distance import cdist
 
-# Load the training and testing datasets
-train_df = pd.read_csv('/content/drive/My Drive/cs6350/assignments/assignment4/bank-note/train.csv', header=None)
-test_df = pd.read_csv('/content/drive/My Drive/cs6350/assignments/assignment4/bank-note/test.csv', header=None)
+train_df = pd.read_csv('datasets/bank-note/train.csv', header=None)
+test_df = pd.read_csv('datasets/bank-note/test.csv', header=None)
 
-# Extract features and labels from datasets
 X_train = train_df.iloc[:, :-1].values
 y_train = train_df.iloc[:, -1].values
 X_test = test_df.iloc[:, :-1].values
 y_test = test_df.iloc[:, -1].values
 
-# Convert labels to {-1, 1}
 y_train = np.where(y_train == 0, -1, 1)
 y_test = np.where(y_test == 0, -1, 1)
 
-# Hyperparameters
-C_values = [100/873, 500/873, 700/873]  # Different values of C
-gamma_values = [0.01, 0.1, 0.5, 1, 5, 100]  # Different values of gamma for Gaussian kernel
+C_values = [100/873, 500/873, 700/873]
+gamma_values = [0.01, 0.1, 0.5, 1, 5, 100]
 
-# Gaussian kernel function using vectorized operations
 def gaussian_kernel_matrix(X1, X2, gamma):
     pairwise_sq_dists = cdist(X1, X2, 'sqeuclidean')
     return np.exp(-pairwise_sq_dists / gamma)
 
-# Dual SVM objective function with Gaussian kernel
 def dual_objective_kernel(alpha, K, y):
     return 0.5 * alpha @ (y * y.T * K) @ alpha - np.sum(alpha)
 
-# Equality constraint: sum(alpha_i * y_i) = 0
 def equality_constraint(alpha, y):
     return np.dot(alpha, y)
 
-# Train SVM using dual form with Gaussian kernel for different values of C and gamma
 support_vectors_info = {}
 
 for gamma in gamma_values:
@@ -52,18 +44,14 @@ for gamma in gamma_values:
     for C in C_values:
         n_samples = X_train.shape[0]
 
-        # Initial guess for alpha
         alpha0 = np.zeros(n_samples)
 
-        # Constraints and bounds
         constraints = ({'type': 'eq', 'fun': equality_constraint, 'args': (y_train,)})
         bounds = [(0, C) for _ in range(n_samples)]
 
-        # Optimize using SLSQP
         result = minimize(dual_objective_kernel, alpha0, args=(K, y_train), method='SLSQP', bounds=bounds, constraints=constraints)
         alpha_opt = result.x
 
-        # Recover the bias b (using support vectors with 0 < alpha_i < C)
         support_vector_indices = np.where((alpha_opt > 1e-5) & (alpha_opt < C - 1e-5))[0]
         support_vectors_info[(C, gamma)] = support_vector_indices
 
@@ -72,10 +60,8 @@ for gamma in gamma_values:
         else:
             b = 0
 
-        # Report the bias
         print(f"For C = {C}, Gamma = {gamma}: Bias (b) = {b}")
 
-        # Calculate training and test errors
         train_predictions = np.sign(np.dot(K, (alpha_opt * y_train)) + b)
         train_error = np.mean(train_predictions != y_train)
 
@@ -83,13 +69,10 @@ for gamma in gamma_values:
         test_predictions = np.sign(np.dot(K_test, (alpha_opt * y_train)) + b)
         test_error = np.mean(test_predictions != y_test)
 
-        # Report training and test errors
         print(f"For C = {C}, Gamma = {gamma}: Training Error = {train_error:.4f}, Test Error = {test_error:.4f}")
 
-        # Report number of support vectors
         print(f"For C = {C}, Gamma = {gamma}: Number of Support Vectors = {len(support_vector_indices)}")
 
-# Compare the number of overlapped support vectors for consecutive gamma values when C = 500/873
 C_target = 500/873
 overlapped_counts = []
 for i in range(len(gamma_values) - 1):
